@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="me.hindoong.book.service.BookSentenceMapper">
+
+	<!-- 문장 등록 -->
+	<insert id="insertBookSentence" parameterType="booksentence">
+	insert into booksentence(
+		useremail
+		, isbn
+		<if test="page != null">
+		, page
+		</if>
+		, sentence
+	)values(
+		#{userEmail}
+		, #{isbn}
+		<if test="page != null">
+		, #{page}
+		</if>
+		, #{sentence}
+	)
+	</insert>
+	
+	<!-- 문장 수정 -->
+	<update id="updateBookSentence" parameterType="booksentence">
+	update booksentence
+	set
+		useremail = #{userEmail}
+		, isbn = #{isbn}
+		<if test="page != null">
+		, page = #{page}
+		</if>
+		, sentence = #{sentence}
+	where
+		sentencenum = #{sentenceNum}
+	</update>
+	
+	<!-- 문장 삭제 -->
+	<delete id="deleteBookSentence">
+	delete booksentence
+	where
+		sentencenum = #{sentenceNum}
+	</delete>
+	
+	<!-- 문장 읽기 -->
+	<select id="selectBookSentence" resultType="booksentence">
+	select
+		x.sentencenum
+		, x.useremail
+		, x.isbn
+		, x.page
+		, x.sentence
+		, x.inputdate
+		, x.nickname	
+		<if test="myPage == null">
+		, x.hit
+		</if>
+		<if test="myPage == 1">
+		, x.hitdate as hitdate
+		</if>	
+		, y.title
+		, y.author
+		, y.image
+	from	
+		(select
+			a.sentencenum
+			, a.useremail
+			, a.isbn
+			, a.page
+			, a.sentence
+			, a.inputdate
+			<if test="myPage == null">
+			, a.hit
+			</if>
+			<if test="myPage == 1">
+			, a.hitdate
+			</if>
+			, m.nickname
+		from 
+			(select
+				s.sentencenum
+				, s.useremail
+				, s.isbn
+				, s.page
+				, s.sentence
+				, s.inputdate
+				<if test="myPage == null">
+				, ifnull(h.hit, 0) as hit
+				</if>
+				<if test="myPage == 1">
+				, h.hitdate
+				</if>
+			from
+				(select
+					sentencenum
+					, useremail
+					, isbn
+					, page
+					, sentence
+					, inputdate
+				from
+					booksentence
+				where
+					<if test="searchOption == null">
+					1=1
+					</if>
+					<if test="searchOption == 'isbn'">
+					isbn = #{keyword}
+					</if>
+					<if test="searchOption == 'userEmail'">
+					userEmail = #{keyword}
+					</if>
+				) s
+			<if test="myPage == null">
+			left join 			
+			</if>
+			<if test="myPage == 1">
+			right join
+			</if>
+				(
+				select
+					sentencenum
+					<if test="myPage == null">
+					, count(*) as hit
+					</if>
+					<if test="myPage == 1">
+					, hitdate
+					</if>
+				from
+					sentencehit
+				where
+				<choose>
+					<when test="period == null">1=1</when>
+					<when test="period != null">
+					hitdate &gt; DATE_ADD(now(), INTERVAL -#{period} day)
+					</when>
+				</choose>
+				<if test="myPage == 1">
+				and useremail = #{userEmail}
+				</if>
+				<if test="myPage == null">
+				group by
+					sentencenum
+				</if>
+				) h
+			on s.sentencenum = h.sentencenum) a
+		join
+			(select
+				useremail,
+				nickname
+			from
+				hamstermember) m
+		on a.useremail = m.useremail)x
+	join
+		(
+		select
+			isbn
+			, title
+			, author
+			, image
+		from
+			bookinfo
+		) y
+	on x.isbn = y.isbn
+	order by
+	<choose>
+		<when test="orderOption == null">
+		hit desc
+		</when>
+		<when test="orderOption == 'hit'">
+		hit desc
+		</when>
+		<when test="orderOption == 'inputdate'">
+		inputdate desc
+		</when>
+		<when test="orderOption == 'hitdate'">
+		hitdate desc
+		</when>
+	</choose>
+	LIMIT #{offset}, #{limit}
+	</select>
+	
+	<!-- 문장 읽기 - 총 결과 수 -->
+	<select id="selectBookSentenceCount" resultType="int">
+	select
+		count(*)
+	from
+		<if test="myPage == null">
+		booksentence
+		</if>
+		<if test="myPage == 1">
+		sentencehit
+		</if>
+	where
+	<choose>
+		<when test="searchOption == null">1=1</when>
+		<when test="searchOption == 'isbn'">
+		isbn = #{keyword}
+		</when>
+		<when test="searchOption == 'userEmail'">
+		userEmail = #{keyword}
+		</when>
+	</choose>
+	<if test="myPage == 1">
+		and userEmail = #{userEmail}
+	</if>
+	</select>
+	
+	<!-- 문장 추천 -->
+	<insert id="insertSentenceHit">
+	insert into
+		sentencehit(
+			useremail
+			, sentencenum
+		)values(
+			#{userEmail}
+			, #{sentenceNum}
+		)
+	</insert>
+	
+	<!-- 문장 추천 조회 -->
+	<select id="selectSentenceHit" resultType="int">
+	select
+		count(*)
+	from
+		sentencehit
+	where
+		sentencenum = #{sentenceNum} and userEmail = #{userEmail}	
+	</select>
+	
+</mapper>
+

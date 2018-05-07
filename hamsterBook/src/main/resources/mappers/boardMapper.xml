@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 연결된 mapper -->
+<mapper namespace="me.hindoong.book.service.BoardMapper">
+
+<!-- 이하 쿼리들 -->
+<!-- 게시글 작성 -->
+<insert id="insertBoard" parameterType="board">
+insert into
+	hamsterboard(
+		nickname
+		, title
+		, content
+		<if test="originalfile != null">
+		, originalfile
+		, savedfile
+		</if>
+	)values(
+		#{nickname}
+		, #{title}
+		, #{content}
+		<if test="originalfile != null">
+		, #{originalfile}
+		, #{savedfile}
+		</if>
+	)
+</insert>
+
+<!-- 게시글 조회 -->
+<select id="selectBoardList" resultType="board" parameterType="map">
+select
+	b.boardnum
+	, b.nickname
+	, b.title
+	, b.inputdate
+	, b.hits
+	, r.reply
+from
+	(select
+		boardnum
+		, nickname
+		, title
+		, content
+		, DATE_FORMAT(inputdate, '%Y-%m-%d') inputdate
+		, hits
+	from
+		hamsterboard
+	where
+		isdelete = false
+		<choose>
+			<when test="searchOption == 'none'"></when>
+			<when test="searchOption == 'nickname'">
+			and nickname like CONCAT('%',#{keyword},'%')
+			</when>
+			<when test="searchOption == 'title'">
+			and title like CONCAT('%',#{keyword},'%')
+			</when>
+			<when test="searchOption == 'content'">
+			and content like CONCAT('%',#{keyword},'%')
+			</when>
+		</choose>
+	order by
+		boardnum desc
+	LIMIT #{offset}, #{limit}) b
+left join
+	(select boardnum, count(*) as reply
+	from hamsterreply
+	group by boardnum) r
+on
+	b.boardnum = r.boardnum
+</select>
+
+<!-- 게시글 개수 조회 -->
+<select id="boardCount" resultType="int"  parameterType="map">
+select
+	count(*)
+from
+	hamsterboard
+where
+	isdelete = false
+	<choose>
+		<when test="searchOption == 'none'"></when>
+		<when test="searchOption == 'nickname'">
+		and nickname like CONCAT('%',#{keyword},'%')
+		</when>
+		<when test="searchOption == 'title'">
+		and title like CONCAT('%',#{keyword},'%')
+		</when>
+		<when test="searchOption == 'content'">
+		and content like CONCAT('%',#{keyword},'%')
+		</when>
+	</choose>
+</select>
+
+<!-- 글 하나 검색 -->
+<select id="selectBoardOne" resultType="board">
+select
+	boardnum
+	, nickname
+	, title
+	, content
+	, DATE_FORMAT(inputdate, '%Y-%m-%d') inputdate
+	, hits
+	, originalfile
+	, savedfile
+from
+	hamsterboard
+where
+	boardnum = #{id} and isdelete = false
+</select>
+
+<!-- 글 읽기 시 조회수 수정 -->
+<update id="addHits" >
+update
+	hamsterboard
+set
+	hits = hits+1
+where
+	boardnum = #{boardnum}
+</update>
+
+<!-- 글 수정 -->
+<update id="updateBoard" parameterType="board">
+update
+	hamsterboard
+set
+	title = #{title}
+	, content = #{content}
+	, inputdate = now()
+	<if test="originalfile != null">
+	, originalfile = #{originalfile}
+	, savedfile = #{savedfile}
+	</if>
+	<if test="originalfile == null">
+	, originalfile = null
+	, savedfile = null
+	</if>
+where
+	boardnum = #{boardnum}
+</update>
+
+<!-- 글 삭제(삭제 체크의 값을 false로 변화시키는 것) -->
+<update id="deleteBoard" parameterType="board" >
+update
+	hamsterboard
+set
+	isdelete = true
+	, deletedate = now()
+	, deleteName = #{nickname}
+where
+	boardnum = #{boardnum}
+</update>
+
+<!--댓글 조회 -->
+<select id="selectReplyList" resultType="reply">
+select
+	replynum
+	, nickname
+	, replyText
+	, date_format(inputdate, '%Y-%m-%d') inputdate
+from
+	hamsterreply
+where
+	boardnum = #{boardnum}
+order by
+	replynum desc
+</select>
+
+<!-- 댓글 등록 -->
+<insert id="insertReply" parameterType="reply">
+insert into
+	hamsterreply(
+		boardnum
+		, nickname
+		, replyText
+	)values(
+		#{boardnum}
+		, #{nickname}
+		, #{replyText}
+	)	
+</insert>
+
+<!-- 댓글 삭제 -->
+<delete id="deleteReply" >
+delete from
+	hamsterreply
+where
+	replynum = #{replynum}
+</delete>
+
+</mapper>

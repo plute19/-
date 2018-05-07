@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="me.hindoong.book.service.HamsterMemberMapper">
+
+	<!-- 회원 가입 -->
+	<insert id="insertMember" parameterType="hamstermember">
+	insert into hamstermember
+	(
+		userEmail
+		, userPassword
+		, nickname
+	)values(
+		#{userEmail}
+		, #{userPassword}
+		, #{nickname}
+	)
+	</insert>
+	
+	<!-- 회원 검색 -->
+	<select id="selectMemberOne" resultType="hamstermember">
+	select
+		userEmail
+		, userPassword
+		, nickname
+		, level
+	from
+		hamstermember
+	where
+		<choose>
+			<when test="keyword == 'userEmail'">
+			useremail = #{value}
+			</when>
+			<when test="keyword == 'nickname'">
+			nickname = #{value}
+			</when>
+		</choose>
+	</select>
+	
+	<!-- 회원 정보 수정 -->
+	<update id="updateMember" parameterType="map">
+	update hamstermember
+	set
+		nickname = #{nickname}
+		, userpassword = #{userPassword}
+	where
+		userEmail = #{userEmail}
+	</update>
+
+	<!-- 회원 이메일 수정 -->
+	<update id="updateEmail" parameterType="map">
+	update hamstermember
+	set
+		userEmail = #{userEmail}
+	where
+		userEmail = #{beforeUserEmail}
+	</update>
+
+	<!-- 회원 탈퇴 -->
+	<update id="deleteMember" parameterType="hamstermember">
+	delete from hamstermember
+	where
+		useremail = #{userEmail} and userpassword = #{userPassword}
+	</update>
+	
+</mapper>
+

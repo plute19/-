@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="me.hindoong.book.service.BookInfoMapper">
+
+	<!-- 카테고리 설정 -->
+	<insert id="insertCategory" parameterType="bookcategory">
+	insert into bookcategory(
+		category
+		, c_name
+	)values(
+		#{category}
+		, #{c_name}
+	)
+	</insert>
+	
+	<!-- 카테고리 업데이트 일자 입력 -->
+	<update id="updateCategory" parameterType="bookcategory">
+	update bookcategory
+	set
+		updateDate = now()
+	where
+		category = #{category}
+	</update>
+	
+	<!-- 카테고리 조회 -->
+	<select id="selectCategory" resultType="bookcategory">
+	select
+		c.category
+		, c.c_name
+		, ifnull(c.updateDate, '업데이트 기록 없음') as updateDate
+		, ifnull(i.volume, 0) as volume
+	from
+		bookcategory c
+	left join
+		(
+		select
+			category
+			, count(*) as volume
+		from
+			bookinfo
+		group by
+			category	
+		) i
+	on
+		c.category = i.category
+	order by
+		category
+	</select>
+
+	<!-- 책 정보 등록 -->
+	<insert id="insertBookInfo" parameterType="bookinfo">
+	insert into bookinfo(
+		isbn
+		, title
+		, author
+		, link
+		<if test="publisher != null">
+		, publisher
+		</if>
+		<if test="pubdate != null">
+		, pubdate
+		</if>
+		<if test="category != null">
+		, category
+		</if>
+		<if test="image != null">
+		, image
+		</if>
+		<if test="price != null">
+		, price
+		</if>
+		<if test="description != null">
+		, description
+		</if>
+	)values(
+		#{isbn}
+		, #{title}
+		, #{author}
+		, #{link}
+		<if test="publisher != null">
+		, #{publisher}
+		</if>
+		<if test="pubdate != null">
+		, #{pubdate}
+		</if>
+		<if test="category != null">
+		, #{category}
+		</if>
+		<if test="image != null">
+		, #{image}
+		</if>
+		<if test="price != null">
+		, #{price}
+		</if>
+		<if test="description != null">
+		, #{description}
+		</if>
+	)
+	</insert>
+	
+	<!-- 조건에 부합하는 정보 가지고 오기.. -->
+	<select id="selectBookList" resultType="bookinfo">
+	select
+		i.isbn
+		, i.title
+		, i.author
+		, i.publisher
+		, i.pubdate
+		, i.image
+		, i.category
+		, i.price
+		, i.description
+		<if test="myPage == null">
+		, ifnull(h.hit, 0) as hit
+		</if>
+		<if test="myPage != null">
+		, h.hitdate as hitdate
+		</if>
+	from
+		(select
+			isbn
+			, title
+			, author
+			, publisher
+			, pubdate
+			, image
+			, category
+			, price
+			, description
+		from
+			bookinfo
+		where
+			<if test="searchOption == null">
+			1 = 1
+			</if>
+			<if test="searchOption == 'title'">
+			title like CONCAT('%',#{keyword},'%')
+			</if>
+			<if test="searchOption == 'author'">
+			author like CONCAT('%',#{keyword},'%')
+			</if>
+			<if test="searchOption == 'publisher'">
+			publisher like CONCAT('%',#{keyword},'%')
+			</if>
+		) i 
+		<if test="myPage == null">
+		left join		
+		</if>
+		<if test="myPage != null">
+		right join
+		</if>
+		(
+		select
+			isbn
+			<if test="myPage == null">
+			, count(*) as hit
+			</if>
+			<if test="myPage != null">
+			, hitdate
+			</if>
+		from
+			bookhit
+		where
+		<if test="period == null">1=1</if>
+		<if test="period != null">
+		hitdate &gt; DATE_ADD(now(), INTERVAL -#{period} day)
+		</if>
+		<if test="myPage == null">
+		group by
+			isbn
+		</if>
+		<if test="myPage != null">
+		and useremail = #{userEmail}
+		</if>
+		) h
+	on i.isbn = h.isbn
+	order by
+		<if test="orderOption == null">
+		hit desc
+		</if>
+		<if test="orderOption == 'hit'">
+		hit desc
+		</if>
+		<if test="orderOption == 'title'">
+		title
+		</if>
+		<if test="orderOption == 'author'">
+		author
+		</if>
+		<if test="orderOption == 'pubdate'">
+		pubdate desc
+		</if>
+		<if test="orderOption == 'hitdate'">
+		hitdate desc
+		</if>
+	LIMIT #{offset}, #{limit}
+	</select>
+
+	<!-- 조건에 부합하는 정보 가지고 오기.. -->
+	<select id="selectBookListCount" resultType="int">
+	select
+		count(*)
+	from
+		<if test="myPage == null">
+		bookinfo
+		</if>
+		<if test="myPage == 1">
+		bookhit
+		</if>
+	where
+	 	<if test="searchOption == null">
+	 	1 = 1
+	 	</if>
+		<if test="searchOption == 'title'">
+		title like CONCAT('%',#{keyword},'%')
+		</if>
+		<if test="searchOption == 'author'">
+		author like CONCAT('%',#{keyword},'%')
+		</if>
+		<if test="searchOption == 'publisher'">
+		publisher like CONCAT('%',#{keyword},'%')
+		</if>
+	<if test="myPage != null">
+		and userEmail = #{userEmail}
+	</if> 
+	</select>
+	
+	<!-- 책 정보 하나만 가지고 오기 -->
+	<select id="selectBookOne" resultType="bookinfo">
+	select 
+		i.isbn
+		, i.title
+		, i.author
+		, i.publisher
+		, i.pubdate
+		, i.image
+		, i.link
+		, i.category
+		, i.price
+		, i.description	
+		, ifnull(h.hit, 0) as hit
+	from	
+		(select
+			isbn
+			, title
+			, author
+			, publisher
+			, pubdate
+			, image
+			, link
+			, category
+			, price
+			, description
+		from
+			bookinfo
+		where
+			isbn like CONCAT('%',#{isbn},'%') ) i 
+	left join
+		(select
+			isbn,
+			count(*) as hit
+		from
+			bookhit
+		group by
+			isbn) h 
+	on i.isbn = h.isbn
+	</select>
+	
+	<!-- 좋아요 추가 -->
+	<insert id="insertBookHit">
+	insert into
+		bookhit(
+			isbn
+			, userEmail
+		)values(
+			#{isbn}
+			, #{userEmail}
+		)
+	</insert>
+	
+	<!-- 좋아요 확인 -->
+	<select id="selectBookHit" resultType="int">
+	select
+		count(*)
+	from
+		bookhit
+	where
+		isbn = #{isbn} and userEmail = #{userEmail}
+	</select>
+	
+</mapper>
+

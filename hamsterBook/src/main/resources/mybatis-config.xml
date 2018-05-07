@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+<typeAliases>
+	<typeAlias type="me.hindoong.book.vo.HamsterMember" alias="hamstermember"/>
+	<typeAlias type="me.hindoong.book.vo.BookInfo" alias="bookinfo"/>
+	<typeAlias type="me.hindoong.book.vo.BookReview" alias="bookreview"/>
+	<typeAlias type="me.hindoong.book.vo.BookSentence" alias="booksentence"/>
+	<typeAlias type="me.hindoong.book.vo.Category" alias="bookcategory"/>
+	<typeAlias type="me.hindoong.book.vo.Board" alias="board"/>
+	<typeAlias type="me.hindoong.book.vo.Reply" alias="reply"/>
+</typeAliases>
+
+<mappers>
+	<mapper resource="mappers/hamsterMemberMapper.xml"/>
+	<mapper resource="mappers/bookInfoMapper.xml"/>
+	<mapper resource="mappers/bookReviewMapper.xml"/>
+	<mapper resource="mappers/bookSentenceMapper.xml"/>
+	<mapper resource="mappers/boardMapper.xml"/>
+</mappers>
+
+</configuration>
